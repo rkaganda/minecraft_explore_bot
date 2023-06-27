@@ -1,0 +1,11 @@
+bot_log_path: "log/bot.log"
+
+discord_log_path: "bot.log"
+db_log_path: "db.log"
+
+db_path: "sqlite:///bot.db"
+minecraft_version: '1.9'
+
+bot_name: "explore_bot"
+server_ip: "192.168.1.120"
+server_port: 25565
