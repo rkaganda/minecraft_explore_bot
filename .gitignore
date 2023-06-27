@@ -1,0 +1,7 @@
+/config.yaml
+.idea
+*.log
+test
+*.pyc
+docker-compose.yaml
+*.ipynb
