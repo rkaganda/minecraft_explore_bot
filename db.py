@@ -1,5 +1,5 @@
 import sqlalchemy as sqla
-from sqlalchemy import Column, Integer
+from sqlalchemy import Column, Integer, DateTime, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -29,6 +29,14 @@ class WorldBlock(Base):
     y = Column(Integer, primary_key=True)
     z = Column(Integer, primary_key=True)
     block_type = Column(Integer, index=True)
+
+
+class OpenAIAPILog(Base):
+    __tablename__ = "openai_api_log"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    input_json = Column(String)
+    output_json = Column(String)
 
 
 engine = sqla.create_engine(f"{config.settings['db_path']}")
@@ -69,5 +77,19 @@ class BotDB:
         self.session.merge(world_block)
         self.session.flush()
         self.session.commit()
+
+    def store_openai_log(
+            self,
+            input_str: str,
+            output_str: str
+    ) -> OpenAIAPILog:
+        openai_log = OpenAIAPILog(
+            input_json=input_str,
+            output_json=output_str,
+        )
+        self.session.add(openai_log)
+        self.session.flush()
+
+        return openai_log
 
 

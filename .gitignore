@@ -5,3 +5,4 @@ test
 *.pyc
 docker-compose.yaml
 *.ipynb
+*.db

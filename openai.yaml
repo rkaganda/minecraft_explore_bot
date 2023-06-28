@@ -1,0 +1,3 @@
+chat_message_system: ""
+chat_message_prompt: "{chat_message}"
+chat_message_temperature: 0

@@ -9,3 +9,8 @@ minecraft_version: '1.9'
 bot_name: "explore_bot"
 server_ip: "192.168.1.120"
 server_port: 25565
+
+openapi_token: ""
+# openapi_model: "gpt-4"
+openapi_model: "gpt-3.5-turbo"
+attempt_limit: 10

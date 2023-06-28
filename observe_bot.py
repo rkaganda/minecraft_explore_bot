@@ -3,6 +3,7 @@ import math
 import logging
 
 import config
+import openai
 from db import BotDB
 
 logger = logging.getLogger('bot')
@@ -52,8 +53,10 @@ def handle_msg(this, sender, message, *args):
             pos = target.position
             bot.pathfinder.setMovements(movements)
             bot.pathfinder.setGoal(pathfinder.goals.GoalNear(pos.x, pos.y, pos.z, 1))
-        if 'stop' in message:
+        elif message == 'stop':
             off(bot, 'chat', handle_msg)
+        else:
+            bot.chat(openai.query_chat_message(BotDB(), message))
 
 
 @On(bot, 'move')
