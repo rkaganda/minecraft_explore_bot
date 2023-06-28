@@ -65,7 +65,7 @@ def query_chat_message(db: BotDB, chat_message: str):
             try:
                 if response['error']['type'] == 'server_error' and \
                         response['error']['type'] == 'context_length_exceeded':
-                    attempt_count = attempt_count + 1
+                    attempt_count = config.settings['attempt_limit']
                 elif response['error']['type'] == 'server_error':
                     attempt_count = attempt_count + 1
                 else:
