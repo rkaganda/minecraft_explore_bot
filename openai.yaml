@@ -16,4 +16,14 @@ minecraft_functions:
           description: The message the user sent.
       required:
       - message
+  - name: build_something
+      description: Orders the bot to build something.
+      parameters:
+        type: object
+        properties:
+          message:
+            type: string
+            description: The message the user sent.
+        required:
+          - message
 
