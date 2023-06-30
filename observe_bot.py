@@ -56,7 +56,7 @@ def handle_msg(this, sender, message, *args):
         elif message == 'stop':
             off(bot, 'chat', handle_msg)
         else:
-            bot.chat(openai.query_chat_message(BotDB(), message))
+            bot.chat(openai.query_functions_functions(BotDB(), message))
 
 
 @On(bot, 'move')

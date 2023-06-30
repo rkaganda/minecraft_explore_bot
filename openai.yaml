@@ -1,3 +1,19 @@
 chat_message_system: ""
 chat_message_prompt: "{chat_message}"
 chat_message_temperature: 0
+
+
+minecraft_functions_system: ""
+minecraft_functions_prompt: "{chat_message}"
+minecraft_functions:
+  - name: deliver_items
+    description: Delivers blocks to user.
+    parameters:
+      type: object
+      properties:
+        message:
+          type: string
+          description: The message the user sent.
+      required:
+      - message
+
