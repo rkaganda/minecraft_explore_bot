@@ -6,24 +6,21 @@ chat_message_temperature: 0
 minecraft_functions_system: ""
 minecraft_functions_prompt: "{chat_message}"
 minecraft_functions:
-  - name: "deliver_items"
-    description: "Delivers items."
+  - name: deliver_items
+    description: Delivers items.
     parameters:
-      type: "object"
+      type: object
       properties:
-        message:
-          type: "string"
-          description: "The message the user sent."
+        items:
+          type: array
+          description: The items(s) to deliver.
+          items:
+            type: string
+            description: The name of the item to deliver.
+        location:
+          type: string
+          description: Where to deliver the item(s).
       required:
-        - message
-  - name: "build_something"
-    description: "Orders the bot to build something."
-    parameters:
-      type: "object"
-      properties:
-        message:
-          type: "string"
-          description: "The message the user sent."
-      required:
-        - message
+        - items
+        - location
 
