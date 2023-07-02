@@ -31,6 +31,12 @@ class WorldBlock(Base):
     block_type = Column(Integer, index=True)
 
 
+class MinecraftNameIdMapping(Base):
+    __tablename__ = "item_name_id_mappings"
+    name = Column(String, primary_key=True)
+    id = Column(Integer, nullable=False)
+
+
 class OpenAIAPILog(Base):
     __tablename__ = "openai_api_log"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -39,13 +45,61 @@ class OpenAIAPILog(Base):
     output_json = Column(String)
 
 
+class BotVersionAttributes(Base):
+    __tablename__ = "bot_version_attributes"
+    attribute = Column(String, primary_key=True)
+    value = Column(String, nullable=False)
+
+
 engine = sqla.create_engine(f"{config.settings['db_path']}")
 SessionMaker = sessionmaker(bind=engine)
 Base.metadata.create_all(engine)
 
 
+class BotMinecraftVersionMismatch(Exception):
+    def __init__(self, db_minecraft_version, bot_minecraft_version):
+        self.message = \
+            f"DB minecraft version does not match Bot minecraft version {db_minecraft_version}!={bot_minecraft_version}"
+        super().__init__(self.message)
+
+
+def init_db():
+    session = SessionMaker()
+
+    minecraft_version_attribute = BotVersionAttributes(
+        attribute='minecraft_version',
+        value=config.settings['minecraft_version'],
+    )
+    session.add(minecraft_version_attribute)
+
+    # populate mcData
+    mc_data = require('minecraft-data')(config.settings['minecraft_version'])
+
+    for idx in mc_data.items:
+        name_item_mapping = MinecraftNameIdMapping(
+            name=mc_data.items[idx].name,
+            id=mc_data.items[idx].id,
+        )
+        session.add(name_item_mapping)
+
+    session.commit()
+    session.close()
+
+
 class BotDB:
     def __init__(self):
+        session = SessionMaker()
+
+        db_minecraft_version = session.query(
+            BotVersionAttributes.value
+        ).filter(BotVersionAttributes.attribute == 'minecraft_version').scalar()
+
+        if db_minecraft_version is None:
+            init_db()
+        else:
+            if db_minecraft_version != config.settings['minecraft_version']:
+                raise BotMinecraftVersionMismatch(db_minecraft_version, config.settings['minecraft_version'])
+
         self.session = SessionMaker()
 
     def commit(self):
@@ -55,7 +109,7 @@ class BotDB:
         self.session.rollback()
 
     def close(self):
-        self.session.rollback()
+        self.session.close()
 
     def get_block_loc_by_type(self, block_type: int) -> List[Vec3]:
         blocks = self.session.query(Block).filter(Block.block_type == block_type).all()
