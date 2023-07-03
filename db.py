@@ -31,10 +31,16 @@ class WorldBlock(Base):
     block_type = Column(Integer, index=True)
 
 
-class MinecraftNameIdMapping(Base):
-    __tablename__ = "item_name_id_mappings"
+class BlockNameIdMapping(Base):
+    __tablename__ = "block_name_id_mappings"
     name = Column(String, primary_key=True)
     id = Column(Integer, nullable=False)
+
+
+class BlockDisplayNameIdMapping(Base):
+    __tablename__ = "block_display_name_id_mappings"
+    id = Column(Integer, primary_key=True)
+    display_name = Column(String, primary_key=True)
 
 
 class OpenAIAPILog(Base):
@@ -66,40 +72,45 @@ class BotMinecraftVersionMismatch(Exception):
 def init_db():
     session = SessionMaker()
 
-    minecraft_version_attribute = BotVersionAttributes(
-        attribute='minecraft_version',
-        value=config.settings['minecraft_version'],
-    )
-    session.add(minecraft_version_attribute)
+    db_minecraft_version = session.query(
+        BotVersionAttributes.value
+    ).filter(BotVersionAttributes.attribute == 'minecraft_version').scalar()
 
-    # populate mcData
-    mc_data = require('minecraft-data')(config.settings['minecraft_version'])
-
-    for idx in mc_data.items:
-        name_item_mapping = MinecraftNameIdMapping(
-            name=mc_data.items[idx].name,
-            id=mc_data.items[idx].id,
+    if db_minecraft_version is not None:
+        if db_minecraft_version != config.settings['minecraft_version']:
+            raise BotMinecraftVersionMismatch(db_minecraft_version, config.settings['minecraft_version'])
+    else:
+        minecraft_version_attribute = BotVersionAttributes(
+            attribute='minecraft_version',
+            value=config.settings['minecraft_version'],
         )
-        session.add(name_item_mapping)
+        session.add(minecraft_version_attribute)
 
-    session.commit()
+        # populate mcData
+        mc_data = require('minecraft-data')(config.settings['minecraft_version'])
+        print(config.settings['minecraft_version'])
+
+        for idx in mc_data.blocks:
+            print(idx)
+            name_item_mapping = BlockNameIdMapping(
+                name=mc_data.blocks[idx].name,
+                id=mc_data.blocks[idx].id,
+            )
+            session.add(name_item_mapping)
+
+            display_name_item_mapping = BlockDisplayNameIdMapping(
+                display_name=mc_data.blocks[idx].displayName,
+                id=mc_data.blocks[idx].id,
+            )
+            session.add(display_name_item_mapping)
+        print("finished populating data")
+
+        session.commit()
     session.close()
 
 
 class BotDB:
     def __init__(self):
-        session = SessionMaker()
-
-        db_minecraft_version = session.query(
-            BotVersionAttributes.value
-        ).filter(BotVersionAttributes.attribute == 'minecraft_version').scalar()
-
-        if db_minecraft_version is None:
-            init_db()
-        else:
-            if db_minecraft_version != config.settings['minecraft_version']:
-                raise BotMinecraftVersionMismatch(db_minecraft_version, config.settings['minecraft_version'])
-
         self.session = SessionMaker()
 
     def commit(self):
@@ -122,14 +133,15 @@ class BotDB:
         return block_locations
 
     def update_block(self, block: Block):
-        world_block = WorldBlock(
-            x=block.position.x,
-            y=block.position.y,
-            z=block.position.z,
-            block_type=block.type
-        )
-        self.session.merge(world_block)
-        self.session.flush()
+        if block is not None:
+            world_block = WorldBlock(
+                x=block.position.x,
+                y=block.position.y,
+                z=block.position.z,
+                block_type=block.type
+            )
+            self.session.merge(world_block)
+            self.session.flush()
         self.session.commit()
 
     def store_openai_log(
