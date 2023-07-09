@@ -88,10 +88,8 @@ def init_db():
 
         # populate mcData
         mc_data = require('minecraft-data')(config.settings['minecraft_version'])
-        print(config.settings['minecraft_version'])
 
         for idx in mc_data.blocks:
-            print(idx)
             name_item_mapping = BlockNameIdMapping(
                 name=mc_data.blocks[idx].name,
                 id=mc_data.blocks[idx].id,
@@ -103,7 +101,6 @@ def init_db():
                 id=mc_data.blocks[idx].id,
             )
             session.add(display_name_item_mapping)
-        print("finished populating data")
 
         session.commit()
     session.close()

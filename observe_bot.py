@@ -10,7 +10,7 @@ from bot_tasks import BotTask
 
 logger = logging.getLogger('bot')
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename=config.settings['db_log_path'], encoding='utf-8', mode='a')
+handler = logging.FileHandler(filename=config.settings['bot_log_path'], encoding='utf-8', mode='a')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
@@ -32,11 +32,19 @@ mcData = require('minecraft-data')(bot.version)
 movements = pathfinder.Movements(bot, mcData)
 
 db.init_db()
+last_location = None
 
-bot.chat(f'{BOT_USERNAME} spawned')
-logger.info(f'{BOT_USERNAME} spawned')
 
-last_location = bot.entity.position
+@Once(bot, 'login')
+def login(this, *args):
+    try:
+        global last_location
+        bot.chat(f'{BOT_USERNAME} spawned')
+        logger.info(f'{BOT_USERNAME} spawned')
+        last_location = bot.entity.position
+    except Exception as e:
+        logger.exception("bot:login")
+        raise e
 
 
 def euclidean_distance_3d(point1, point2):
@@ -45,52 +53,59 @@ def euclidean_distance_3d(point1, point2):
 
 @On(bot, 'chat')
 def handle_msg(this, sender, message, *args):
-    if sender and (sender != BOT_USERNAME):
-        bot.chat(f'heard - {message}')
-        logger.info(f'heard - {message}')
-        if 'come' in message:
-            player = bot.players[sender]
-            target = player.entity
-            if not target:
-                bot.chat("can't see target")
-                return
-            pos = target.position
-            bot.pathfinder.setMovements(movements)
-            bot.pathfinder.setGoal(pathfinder.goals.GoalNear(pos.x, pos.y, pos.z, 1))
-        elif message == 'stop':
-            off(bot, 'chat', handle_msg)
-        else:
-            bot_task = BotTask(bot)
-            bot.chat(bot_task.handle_user_request(message))
+    try:
+        if sender and (sender != BOT_USERNAME):
+            bot.chat(f'heard - {message}')
+            logger.info(f'heard - {message}')
+            if 'come' in message:
+                player = bot.players[sender]
+                target = player.entity
+                if not target:
+                    bot.chat("can't see target")
+                    return
+                pos = target.position
+                bot.pathfinder.setMovements(movements)
+                bot.pathfinder.setGoal(pathfinder.goals.GoalNear(pos.x, pos.y, pos.z, 1))
+            elif message == 'stop':
+                off(bot, 'chat', handle_msg)
+            else:
+                bot_task = BotTask(bot)
+                bot.chat(bot_task.handle_user_request(message))
+    except Exception as e:
+        logger.exception("bot:chat")
+        raise e
 
 
 @On(bot, 'move')
 def observe_local_blocks(*args):
-    global last_location
-    global Vec3
-    # scan range
-    scan_range = 4
-    move_threshold = 2
+    try:
+        global last_location
+        global Vec3
+        # scan range
+        scan_range = 4
+        move_threshold = 2
 
-    bot_location = bot.entity.position
-    if bot_location is not None:
-        distance_traveled = round(abs(euclidean_distance_3d(bot_location, last_location)))
-        if distance_traveled > move_threshold:
-            scan_points = [Vec3(bot_location.x + x, bot_location.y + y, bot_location.z + z)
-                           for x in range(-scan_range, scan_range + 1)
-                           for y in range(-scan_range, scan_range + 1)
-                           for z in range(-scan_range, scan_range + 1)]
+        bot_location = bot.entity.position
+        if bot_location is not None:
+            distance_traveled = round(abs(euclidean_distance_3d(bot_location, last_location)))
+            if distance_traveled > move_threshold:
+                scan_points = [Vec3(bot_location.x + x, bot_location.y + y, bot_location.z + z)
+                               for x in range(-scan_range, scan_range + 1)
+                               for y in range(-scan_range, scan_range + 1)
+                               for z in range(-scan_range, scan_range + 1)]
 
-            db = BotDB()
+                db = BotDB()
 
-            for point in scan_points:
-                block = bot.blockAt(point)
-                logger.debug(f'block={block}')
-                db.update_block(block)
-                db.commit()
-                db.close()
-            last_location = bot.entity.position
-    else:
-        pass
+                for point in scan_points:
+                    block = bot.blockAt(point)
+                    db.update_block(block)
+                    db.commit()
+                    db.close()
+                last_location = bot.entity.position
+        else:
+            pass
+    except Exception as e:
+        logger.exception("bot:move")
+        raise e
 
 
