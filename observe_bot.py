@@ -32,19 +32,13 @@ mcData = require('minecraft-data')(bot.version)
 movements = pathfinder.Movements(bot, mcData)
 
 db.init_db()
-last_location = None
 
 
-@Once(bot, 'login')
-def login(this, *args):
-    try:
-        global last_location
-        bot.chat(f'{BOT_USERNAME} spawned')
-        logger.info(f'{BOT_USERNAME} spawned')
-        last_location = bot.entity.position
-    except Exception as e:
-        logger.exception("bot:login")
-        raise e
+once(bot, 'spawn')
+bot.chat('I spawned')
+bot.chat(f'{BOT_USERNAME} spawned')
+logger.info(f'{BOT_USERNAME} spawned')
+last_location = bot.entity.position
 
 
 def euclidean_distance_3d(point1, point2):
