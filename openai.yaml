@@ -6,21 +6,14 @@ chat_message_temperature: 0
 minecraft_functions_system: ""
 minecraft_functions_prompt: "{chat_message}"
 minecraft_functions:
-  - name: deliver_items
-    description: Delivers items.
+  - name: mine_block
+    description: Orders the the bot to mine a block.
     parameters:
       type: object
       properties:
-        items:
-          type: array
-          description: The items(s) to deliver.
-          items:
-            type: string
-            description: The name of the item to deliver.
-        location:
+        block_name:
           type: string
-          description: Where to deliver the item(s).
+          description: The name of the block to mine.
       required:
-        - items
-        - location
+        - block_name
 
