@@ -102,4 +102,3 @@ def observe_local_blocks(*args):
         logger.exception("bot:move")
         raise e
 
-
