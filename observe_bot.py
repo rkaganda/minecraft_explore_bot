@@ -103,7 +103,7 @@ def handle_goal_reached(*args):
     try:
         if len(current_bot_tasks) > 0:
             current_task = current_bot_tasks[0]  # get the current task/function
-            logger.debug(f"handle_goal_reached : current_task={current_task}")
+            logger.debug(f"handle_goal_reached : current_task={current_task['function']}")
 
             logger.debug(f"current_task['function'].__name__ = {current_task['function'].__name__}")
             logger.debug(f"bot_functions.go_to_location.__name__ = {bot_functions.go_to_location.__name__}")
@@ -113,12 +113,7 @@ def handle_goal_reached(*args):
                 current_bot_tasks.pop(0)  # goal was reached so remove got_to_location from list
             else:
                 logger.debug("mismatch")
-
-            if len(current_bot_tasks) > 0:  # if there is another task
-                next_task = current_bot_tasks[0]  # get next task
-                logger.debug(f"handle_goal_reached : current_task={current_task}")
-                next_task['arguments']['bot'] = bot  # add bot to arguments
-                next_task['function'](**next_task['arguments'])  # call next task function
+            do_task()
 
     except Exception as e:
         logger.exception("bot:goal_reached")
@@ -127,10 +122,11 @@ def handle_goal_reached(*args):
 
 @On(bot, 'diggingCompleted')
 def handle_digging_completed(*args):
+    bot_functions.observe_local_blocks(bot)  # update state
     try:
         if len(current_bot_tasks) > 0:
             current_task = current_bot_tasks[0]  # get the current task/function
-            logger.debug(f"handle_digging_completed : current_task={current_task}")
+            logger.debug(f"handle_digging_completed : current_task={current_task['function']}")
 
             # if the current task is dig_block_by_location
             if current_task['function'].__name__ == bot_functions.dig_block_by_location.__name__:
@@ -159,7 +155,7 @@ def handle_digging_aborted(block):
 
 
 def do_task():
-    if len(current_bot_tasks) > 1:  # if there is another task
+    if len(current_bot_tasks) > 0:  # if there is another task
         next_task = current_bot_tasks[0]  # get next task
         logger.debug(f"handle_digging_completed : next_task={next_task}")
         next_task['arguments']['bot'] = bot  # add bot to arguments
