@@ -39,4 +39,22 @@ def mine_block(bot: javascript.proxy.Proxy, bot_tasks: list, block_name):
     bot_functions.go_to_location(bot=bot, location=block_location, distance_from=1)
 
 
+def display_inventory(bot: javascript.proxy.Proxy, bot_tasks: list):
+    bot_functions.get_inventory_items(bot=bot)
+
+
+def craft_item(bot: javascript.proxy.Proxy, bot_tasks: list, item_name: str):
+    try:
+        # get item id
+        item_id = bot_functions.get_item_id_by_name(item_name)
+    except bot_functions.NoItemIdForName:
+        bot.chat(f"don't know item_name {item_name}")
+        return
+
+    inventory_items = bot_functions.get_inventory_items(bot)
+
+    missing_recipe_items = bot_functions.get_recipe_missing_items(item_id=item_id, inventory_items=inventory_items)
+    bot.chat(f"missing items for {item_name}: {missing_recipe_items}")
+
+
 

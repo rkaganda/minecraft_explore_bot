@@ -16,4 +16,23 @@ minecraft_functions:
           description: The name of the block to mine.
       required:
         - block_name
+  - name: display_inventory
+    description: Displays the bots inventory
+    parameters:
+      type: object
+      properties:
+        unused:
+          type: string
+          description: This param is not requried.
+      required: []
+  - name: craft_item
+    description: Orders the bot to craft an item.
+    parameters:
+      type: object
+      properties:
+        item_name:
+          type: string
+          description: The name of the item to craft.
+      required:
+        - item_name
 
