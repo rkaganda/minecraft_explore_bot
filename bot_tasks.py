@@ -27,14 +27,16 @@ def mine_block(bot: javascript.proxy.Proxy, bot_tasks: list, block_name):
 
     logger.debug(f"mine_block block_location={block_location}")
 
-    # path to block
-    bot_functions.go_to_location(bot=bot, location=block_location)
-
     bot_tasks.extend([{
         "function": bot_functions.go_to_location,
-        "arguments": {"location": block_location}
+        "arguments": {"location": block_location, "distance_from": 1}
     }, {
         "function": bot_functions.dig_block_by_location,
         "arguments": {"block_location": block_location}
     }])
+
+    # path to block
+    bot_functions.go_to_location(bot=bot, location=block_location, distance_from=1)
+
+
 

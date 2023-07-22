@@ -50,10 +50,10 @@ current_bot_tasks = list()
 
 
 @On(bot, 'chat')
-def handle_msg(this, sender, message, *args):
+def handle_msg(_bot, sender, message, *args):
     try:
         if sender and (sender != BOT_USERNAME):
-            bot.chat(f'heard - {message}')
+            _bot.chat(f'heard - {message}')
             logger.info(f'heard - {message}')
             if 'come' in message:
                 player = bot.players[sender]
@@ -68,10 +68,10 @@ def handle_msg(this, sender, message, *args):
                 }])
                 bot_functions.go_to_location(bot, pos)
             elif message == 'stop':
-                off(bot, 'chat', handle_msg)
+                off(_bot, 'chat', handle_msg)
             else:
-                bot.chat("processing task...")
-                handle_user_request(bot, message)
+                _bot.chat("processing task...")
+                handle_user_request(_bot, message)
     except Exception as e:
         logger.exception("bot:chat")
         raise e
@@ -103,7 +103,7 @@ def handle_goal_reached(*args):
     try:
         if len(current_bot_tasks) > 0:
             current_task = current_bot_tasks[0]  # get the current task/function
-            logger.debug(f"handle_goal_reached : current_task={current_task['function']}")
+            logger.debug(f"handle_goal_reached : current_task={current_task['function'].__name__}")
 
             logger.debug(f"current_task['function'].__name__ = {current_task['function'].__name__}")
             logger.debug(f"bot_functions.go_to_location.__name__ = {bot_functions.go_to_location.__name__}")
@@ -111,6 +111,7 @@ def handle_goal_reached(*args):
             # if the current task is go_to_location
             if current_task['function'].__name__ == bot_functions.go_to_location.__name__:
                 current_bot_tasks.pop(0)  # goal was reached so remove got_to_location from list
+                logger.debug(f"pop len(current_bot_tasks)={len(current_bot_tasks)}")
             else:
                 logger.debug("mismatch")
             do_task()
@@ -122,15 +123,17 @@ def handle_goal_reached(*args):
 
 @On(bot, 'diggingCompleted')
 def handle_digging_completed(*args):
+    logger.debug(f"handle_digging_completed start")
     bot_functions.observe_local_blocks(bot)  # update state
     try:
         if len(current_bot_tasks) > 0:
             current_task = current_bot_tasks[0]  # get the current task/function
-            logger.debug(f"handle_digging_completed : current_task={current_task['function']}")
+            logger.debug(f"handle_digging_completed : current_task={current_task['function'].__name__}")
 
             # if the current task is dig_block_by_location
             if current_task['function'].__name__ == bot_functions.dig_block_by_location.__name__:
                 current_bot_tasks.pop(0)  # dig_block_by_location done, remove from task list
+                logger.debug(f"pop len(current_bot_tasks)={len(current_bot_tasks)}")
                 do_task()  # call do task
 
     except Exception as e:
@@ -140,6 +143,7 @@ def handle_digging_completed(*args):
 
 @On(bot, 'diggingAborted')
 def handle_digging_aborted(block):
+    logger.debug(f"handle_digging_aborted start")
     try:
         if len(current_bot_tasks) > 0:
             current_task = current_bot_tasks[0]  # get the current task/function
@@ -154,12 +158,39 @@ def handle_digging_aborted(block):
         raise e
 
 
+@On(bot, 'playerCollect')
+def handle_player_collect(_bot, collector, collected):
+    pass
+    # logger.debug(f"handle_player_collect collector={collector} collected={collected}")
+
+
+@On(bot, 'entitySpawn')
+def handle_entity_spawn(_bot, entity):
+    pass
+    # logger.debug(f"handle_entity_spawn args={entity}")
+
+
+@On(bot, 'itemDrop')
+def handle_item_drop(_bot, entity):
+    if entity.position.distanceTo(_bot.entity.position) < 2:
+        logger.debug("scheduled item pickup")
+        current_bot_tasks.append({
+            "function": bot_functions.go_to_location,
+            "arguments": {
+                "location": Vec3(entity.position.x, entity.position.y, entity.position.z),
+                "distance_from": 0
+            }})
+        if len(current_bot_tasks) == 1:  # our task is the only one
+            do_task()
+
+
 def do_task():
     if len(current_bot_tasks) > 0:  # if there is another task
         next_task = current_bot_tasks[0]  # get next task
-        logger.debug(f"handle_digging_completed : next_task={next_task}")
+        logger.debug(f"do_task : next_task['function']={next_task['function']}")
+        logger.debug(f"do_task : next_task['arguments'].keys()={next_task['arguments'].keys()}")
         next_task['arguments']['bot'] = bot  # add bot to arguments
-        next_task['function'](next_task['arguments'])  # call next task function
+        next_task['function'](**next_task['arguments'])  # call next task function
 
 
 def handle_user_request(_bot, message):

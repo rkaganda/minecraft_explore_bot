@@ -65,13 +65,13 @@ def dig_block_by_location(bot: javascript.proxy.Proxy, block_location: Vec3):
     bot.dig(goal_block)
 
 
-def go_to_location(bot: javascript.proxy.Proxy, location: Vec3):
+def go_to_location(bot: javascript.proxy.Proxy, location: Vec3, distance_from: int):
     bot.chat(f"going to {location}")
     bot.loadPlugin(pathfinder.pathfinder)
 
     # travel to the location
     bot.pathfinder.setGoal(
-        pathfinder.goals.GoalNear(location.x, location.y, location.z, 1))
+        pathfinder.goals.GoalNear(location.x, location.y, location.z, distance_from))
 
 
 def observe_local_blocks(bot: javascript.proxy.Proxy):
