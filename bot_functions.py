@@ -2,6 +2,7 @@ import javascript.proxy
 from javascript import require
 from scipy.spatial import KDTree
 import logging
+from collections import Counter
 
 import config
 from db import BotDB
@@ -9,6 +10,7 @@ import db
 
 Vec3 = require('vec3')
 pathfinder = require('mineflayer-pathfinder')
+mcData = require('minecraft-data')(config.settings['minecraft_version'])
 
 
 logger = logging.getLogger('bot_functions')
@@ -90,5 +92,64 @@ def observe_local_blocks(bot: javascript.proxy.Proxy):
         bot_db.update_block(block)
         bot_db.commit()
         bot_db.close()
+
+
+class NoItemIdForName(Exception):
+    """"Raised when corresponding item id can't be found for given name
+    """
+
+    def __init__(self, item_name):
+        super().__init__(f"No item_id found for item name {item_name}.")
+
+
+def get_item_id_by_name(item_name: str) -> int:
+    item_id = None
+    for i_id in mcData.items:
+        if i_id in mcData.items:
+            if str(mcData.items[i_id].name).lower() == item_name.lower():
+                item_id = i_id
+                break
+
+    if item_id is None:
+        raise NoItemIdForName(item_name)
+
+    return item_id
+
+
+def get_inventory_items(bot: javascript.proxy.Proxy):
+    inventory_items = {}
+    inventory_str = ""
+    for item in bot.inventory.items():
+        inventory_str = f"{item.displayName} {item.count}, {inventory_str}"
+        if item.type not in inventory_items:
+            inventory_items[item.type] = item.count
+        else:
+            inventory_items[item.type] = item.count + inventory_items[item.type]
+
+    return inventory_items
+
+
+def get_recipe_missing_items(item_id: int, inventory_items: dict):
+    recipes = mcData.recipes[item_id].valueOf()  # convert to list
+    missing_recipe_items = []
+
+    for recipe in recipes:
+        # if crafting table
+        if 'inShape' in recipe:
+            ingredient_ids = [ingredient_id for row in recipe['inShape'] for ingredient_id in row]
+            recipe_items = Counter(ingredient_ids)
+        elif 'ingredients' in recipe:
+            recipe_items = Counter(recipe['ingredients'])
+
+        # calculate missing items
+        missing_items = {ingredient_id: recipe_items[ingredient_id] - inventory_items.get(ingredient_id, 0)
+                         for ingredient_id in recipe_items
+                         if ingredient_id not in inventory_items or inventory_items[ingredient_id] < recipe_items[
+                             ingredient_id]}
+
+        missing_recipe_items.append(missing_items)
+
+    return missing_recipe_items
+
 
 
