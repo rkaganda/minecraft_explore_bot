@@ -76,6 +76,23 @@ def go_to_location(bot: javascript.proxy.Proxy, location: Vec3, distance_from: i
         pathfinder.goals.GoalNear(location.x, location.y, location.z, distance_from))
 
 
+def craft_item_with_recipe(
+        bot: javascript.proxy.Proxy,
+        item_id: int,
+        recipe_idx: int,
+        count: int = 1,
+        table_location: Vec3 = None):
+
+    bot.chat(f"crafting {item_id} with recipe_index:{recipe_idx}...")
+    crafting_table_block = None
+    if table_location is not None:
+        crafting_table_block = bot.blockAt(table_location)
+    recipe = bot.recipesAll(item_id, None, None)[recipe_idx]
+
+    bot.craft(recipe, count, crafting_table_block)
+    bot.chat(f"crafted {item_id} with recipe_index:{recipe_idx}.")
+
+
 def observe_local_blocks(bot: javascript.proxy.Proxy):
     scan_range = 4
     bot_location = bot.entity.position
@@ -118,9 +135,8 @@ def get_item_id_by_name(item_name: str) -> int:
 
 def get_inventory_items(bot: javascript.proxy.Proxy):
     inventory_items = {}
-    inventory_str = ""
+
     for item in bot.inventory.items():
-        inventory_str = f"{item.displayName} {item.count}, {inventory_str}"
         if item.type not in inventory_items:
             inventory_items[item.type] = item.count
         else:
@@ -137,9 +153,9 @@ def get_recipe_missing_items(item_id: int, inventory_items: dict):
         # if crafting table
         if 'inShape' in recipe:
             ingredient_ids = [ingredient_id for row in recipe['inShape'] for ingredient_id in row]
-            recipe_items = Counter(ingredient_ids)
+            recipe_items = dict(Counter(ingredient_ids))
         elif 'ingredients' in recipe:
-            recipe_items = Counter(recipe['ingredients'])
+            recipe_items = dict(Counter(recipe['ingredients']))
 
         # calculate missing items
         missing_items = {ingredient_id: recipe_items[ingredient_id] - inventory_items.get(ingredient_id, 0)
@@ -147,7 +163,10 @@ def get_recipe_missing_items(item_id: int, inventory_items: dict):
                          if ingredient_id not in inventory_items or inventory_items[ingredient_id] < recipe_items[
                              ingredient_id]}
 
-        missing_recipe_items.append(missing_items)
+        missing_recipe_items.append({
+            "recipe": recipe_items,
+            "missing": missing_items,
+        })
 
     return missing_recipe_items
 

@@ -6,6 +6,7 @@ import bot_functions
 import config
 
 Vec3 = require('vec3')
+mcData = require('minecraft-data')(config.settings['minecraft_version'])
 
 logger = logging.getLogger('bot_tasks')
 logger.setLevel(logging.DEBUG)
@@ -40,7 +41,13 @@ def mine_block(bot: javascript.proxy.Proxy, bot_tasks: list, block_name):
 
 
 def display_inventory(bot: javascript.proxy.Proxy, bot_tasks: list):
-    bot_functions.get_inventory_items(bot=bot)
+    inventory = bot_functions.get_inventory_items(bot=bot)
+
+    named_inventory = {}
+    for item_id, count in inventory.items():
+        if item_id in mcData.items:
+            named_inventory[f"{mcData.items[item_id].name} {item_id}"] = count
+    bot.chat(f"{named_inventory}")
 
 
 def craft_item(bot: javascript.proxy.Proxy, bot_tasks: list, item_name: str):
@@ -54,7 +61,27 @@ def craft_item(bot: javascript.proxy.Proxy, bot_tasks: list, item_name: str):
     inventory_items = bot_functions.get_inventory_items(bot)
 
     missing_recipe_items = bot_functions.get_recipe_missing_items(item_id=item_id, inventory_items=inventory_items)
+
     bot.chat(f"missing items for {item_name}: {missing_recipe_items}")
+
+    valid_recipe_idx = None
+    for recipe_idx, recipe_map in enumerate(missing_recipe_items):
+        if len(recipe_map['missing'].keys()) == 0:  # if there are no missing items
+            print(f"{recipe_idx} {recipe_map}")
+            valid_recipe_idx = recipe_idx
+            break
+
+    if valid_recipe_idx is not None:
+        bot_tasks.extend([{
+            "function": bot_functions.craft_item_with_recipe,
+            "arguments": {
+                "item_id": item_id,
+                "recipe_idx": valid_recipe_idx,
+                "count": 1,
+                "table_location": None
+            }}])
+
+
 
 
 
