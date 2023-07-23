@@ -69,6 +69,8 @@ def handle_msg(_bot, sender, message, *args):
                 bot_functions.go_to_location(bot, pos)
             elif message == 'stop':
                 off(_bot, 'chat', handle_msg)
+            elif message == 'do_task':
+                do_task()
             else:
                 _bot.chat("processing task...")
                 handle_user_request(_bot, message)
@@ -129,6 +131,7 @@ def handle_digging_completed(*args):
         if len(current_bot_tasks) > 0:
             current_task = current_bot_tasks[0]  # get the current task/function
             logger.debug(f"handle_digging_completed : current_task={current_task['function'].__name__}")
+            bot.chat("digging completed.")
 
             # if the current task is dig_block_by_location
             if current_task['function'].__name__ == bot_functions.dig_block_by_location.__name__:
@@ -160,7 +163,8 @@ def handle_digging_aborted(block):
 
 @On(bot, 'playerCollect')
 def handle_player_collect(_bot, collector, collected):
-    pass
+    if collector.id == bot.entity.id:
+        bot.chat(f"collected item {collected.name}")
     # logger.debug(f"handle_player_collect collector={collector} collected={collected}")
 
 

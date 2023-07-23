@@ -30,14 +30,11 @@ def do_openai_query(db: BotDB, json_data: dict) -> Any:
     response = None
 
     while attempt_count < config.settings['attempt_limit']:
-        print(f"start attempt_count={attempt_count}")
-        print(json.dumps(json_data))
         r = requests.post(
             'https://api.openai.com/v1/chat/completions',
             headers={'Authorization': 'Bearer {}'.format(config.settings['openapi_token'])},
             json=json_data
         )
-        print(f"{r.json()}")
         logger.debug(json.dumps(json_data))
         logger.debug(r.json())
         openai_log = db.store_openai_log(
