@@ -58,17 +58,23 @@ def craft_item(bot: javascript.proxy.Proxy, bot_tasks: list, item_name: str):
         bot.chat(f"don't know item_name {item_name}")
         return
 
+    # get inventory items
     inventory_items = bot_functions.get_inventory_items(bot)
 
+    # check recipies for missing items
     missing_recipe_items = bot_functions.get_recipe_missing_items(item_id=item_id, inventory_items=inventory_items)
+    logger.debug(f"missing items for {item_name}: {missing_recipe_items}")
 
-    bot.chat(f"missing items for {item_name}: {missing_recipe_items}")
+    # get id for crafting table
+    table_type = bot_functions.get_block_type_by_name("crafting_table")
+    table_location = bot_functions.get_closest_block_location(
+        origin_location=bot.entity.position, block_type=table_type)
 
     valid_recipe_idx = None
     for recipe_idx, recipe_map in enumerate(missing_recipe_items):
         if len(recipe_map['missing'].keys()) == 0:  # if there are no missing items
-            print(f"{recipe_idx} {recipe_map}")
-            valid_recipe_idx = recipe_idx
+            if (not recipe_map['requires_table']) or (recipe_map['requires_table'] and table_location is not None):
+                valid_recipe_idx = recipe_idx
             break
 
     if valid_recipe_idx is not None:
@@ -78,8 +84,10 @@ def craft_item(bot: javascript.proxy.Proxy, bot_tasks: list, item_name: str):
                 "item_id": item_id,
                 "recipe_idx": valid_recipe_idx,
                 "count": 1,
-                "table_location": None
+                "table_location": table_location
             }}])
+    else:
+        bot.chat(f"no valid recipie found for {item_name}")
 
 
 

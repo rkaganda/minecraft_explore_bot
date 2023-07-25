@@ -17,6 +17,7 @@ logger = logging.getLogger('bot_functions')
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename=config.settings['bot_log_path'], encoding='utf-8', mode='a')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 
 def get_block_type_by_name(block_name: str) -> int:
@@ -42,15 +43,22 @@ def get_closest_block_location(origin_location: Vec3, block_type: int) -> Vec3:
         db.WorldBlock.block_type == block_type
     ).all()
 
+    logger.debug(f"get_closest_block_location: block_type={block_type} world_locations={world_locations}")
+
     if world_locations is not None:
         for world_location in world_locations:
             block_locations.append([world_location.x, world_location.y, world_location.z])
 
-        kdtree = KDTree(block_locations)
-        distance, index = kdtree.query(x=[origin_location.x, origin_location.y, origin_location.z], k=1)
-        closest_location = block_locations[index]
+        logger.debug(f"block_locations = {block_locations}")
+        if len(block_locations) > 0:
+            kdtree = KDTree(block_locations)
+            distance, index = kdtree.query(x=[origin_location.x, origin_location.y, origin_location.z], k=1)
+            closest_location = block_locations[index]
 
-    return Vec3(closest_location[0], closest_location[1], closest_location[2])
+    if closest_location is not None:
+        closest_location = Vec3(closest_location[0], closest_location[1], closest_location[2])
+
+    return closest_location
 
 
 class NoBlockTypeForName(Exception):
@@ -150,10 +158,13 @@ def get_recipe_missing_items(item_id: int, inventory_items: dict):
     missing_recipe_items = []
 
     for recipe in recipes:
+        requires_crafting_table = False
         # if crafting table
         if 'inShape' in recipe:
             ingredient_ids = [ingredient_id for row in recipe['inShape'] for ingredient_id in row]
             recipe_items = dict(Counter(ingredient_ids))
+            if len(recipe['inShape'][0]) > 2:
+                requires_crafting_table = True
         elif 'ingredients' in recipe:
             recipe_items = dict(Counter(recipe['ingredients']))
 
@@ -166,6 +177,7 @@ def get_recipe_missing_items(item_id: int, inventory_items: dict):
         missing_recipe_items.append({
             "recipe": recipe_items,
             "missing": missing_items,
+            "requires_table": requires_crafting_table
         })
 
     return missing_recipe_items

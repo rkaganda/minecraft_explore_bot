@@ -66,7 +66,7 @@ def handle_msg(_bot, sender, message, *args):
                     "function": bot_functions.go_to_location,
                     "arguments": {"location": pos}
                 }])
-                bot_functions.go_to_location(bot, pos)
+                bot_functions.go_to_location(bot, pos, 1)
             elif message == 'stop':
                 off(_bot, 'chat', handle_msg)
             elif message == 'do_task':
@@ -208,9 +208,13 @@ def handle_user_request(_bot, message):
         else:
             function_args = {}
         logger.debug(f"handle_user_request: function={response['name']} args={function_args}")
+        if 'unused' in function_args:  # remove unused param
+            del function_args['unused']
+
         function_args['bot'] = _bot
         function_args['bot_tasks'] = current_bot_tasks
         function_call = response['name']
         method = getattr(bot_tasks, function_call, None)  # load the function
         method(**function_args)  # call the function with the arguments provided
+
 
